@@ -1,453 +1,488 @@
 
-import { useState } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  NavLink,
-  useNavigate,
-  Navigate
-} from "react-router-dom";
-import {
-  LayoutDashboard,
-  FileText,
-  Briefcase,
-  ChartNoAxesColumn,
-  Lightbulb,
-  Menu,
-  X,
-  Upload,
-  CheckCircle,
-  AlertCircle,
-  Target,
-  ArrowRight
-} from "lucide-react";
+import React, { useState } from "react";
+import { extractPdfText } from "./utils/pdfExtractor";
+import "./App.css";
 
-const jobSkills = {
-  "Java Developer": ["Java", "OOP", "SQL", "HTML", "CSS", "Git"],
-  "Web Developer": ["HTML", "CSS", "JavaScript", "React", "Git"],
-  "Python Developer": ["Python", "SQL", "OOP", "Git", "Problem Solving"],
-  "Frontend Developer": ["HTML", "CSS", "JavaScript", "React", "Git"]
-};
-
-function Sidebar({ fileName }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const links = [
-    { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/upload", label: "Resume Upload", icon: FileText },
-    { to: "/job-details", label: "Job & Skills", icon: Briefcase },
-    { to: "/results", label: "Analysis Results", icon: ChartNoAxesColumn },
-    { to: "/suggestions", label: "Suggestions", icon: Lightbulb }
-  ];
-
-  return (
-    <>
-      <button className="mobile-menu" onClick={() => setMobileOpen(!mobileOpen)}>
-        {mobileOpen ? <X /> : <Menu />}
-      </button>
-
-      <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
-        <div className="side-brand">
-          <div className="brand-mark">C</div>
-          <div>
-            <strong>CareerLens</strong>
-            <small>Career Companion</small>
-          </div>
-        </div>
-
-        <div className="side-label">WORKSPACE</div>
-
-        <nav className="side-nav">
-          {links.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => isActive ? "side-link active" : "side-link"}
-              onClick={() => setMobileOpen(false)}
-            >
-              <Icon size={19} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="sidebar-bottom">
-          <div className="profile-box">
-            <div className="profile-avatar">S</div>
-            <div>
-              <strong>Student Workspace</strong>
-              <small>{fileName || "Resume not uploaded"}</small>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {mobileOpen && (
-        <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />
-      )}
-    </>
-  );
-}
-
-function PageHeader({ title, subtitle }) {
-  return (
-    <div className="page-header">
-      <div>
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
-function Dashboard({ file, result }) {
-  return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Your resume and career progress at a glance."
-      />
-
-      <div className="welcome-panel">
-        <div>
-          <span className="eyebrow">CAREER WORKSPACE</span>
-          <h2>Build a stronger profile.</h2>
-          <p>Review your skills and understand how they fit your chosen job role.</p>
-          <NavLink to="/upload" className="primary-btn">
-            Get Started <ArrowRight size={16} />
-          </NavLink>
-        </div>
-        <div className="welcome-icon"><Target size={65} /></div>
-      </div>
-
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-icon purple"><FileText /></div>
-          <span>Resume Status</span>
-          <strong>{file ? "Uploaded" : "Not uploaded"}</strong>
-          <small>{file ? file.name : "Upload your resume to begin"}</small>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon blue"><Briefcase /></div>
-          <span>Selected Job</span>
-          <strong>{result ? result.role : "Not selected"}</strong>
-          <small>Your preferred career role</small>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon green"><ChartNoAxesColumn /></div>
-          <span>Latest Skill Match</span>
-          <strong>{result ? `${result.percentage}%` : "--"}</strong>
-          <small>{result ? "Based on your entered skills" : "Complete an analysis first"}</small>
-        </div>
-      </div>
-
-      <div className="content-card">
-        <div className="card-heading">
-          <div>
-            <h3>Getting Started</h3>
-            <p>Follow these steps to complete your profile analysis.</p>
-          </div>
-        </div>
-
-        <div className="getting-started">
-          <div><span>01</span><div><strong>Upload your resume</strong><p>Select your resume in PDF format.</p></div></div>
-          <div><span>02</span><div><strong>Choose a job role</strong><p>Select the position you are interested in.</p></div></div>
-          <div><span>03</span><div><strong>Enter your skills</strong><p>Add the skills you currently know.</p></div></div>
-          <div><span>04</span><div><strong>View your results</strong><p>Check matching and missing skills.</p></div></div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function UploadPage({ file, setFile }) {
-  return (
-    <>
-      <PageHeader
-        title="Resume Upload"
-        subtitle="Add your resume to your CareerLens workspace."
-      />
-
-      <div className="content-card narrow-card">
-        <div className="form-title">
-          <div className="stat-icon purple"><Upload /></div>
-          <div>
-            <h3>Upload your resume</h3>
-            <p>Choose a PDF file from your computer.</p>
-          </div>
-        </div>
-
-        <label className="upload-area">
-          <div className="upload-symbol"><FileText size={30} /></div>
-          <strong>{file ? file.name : "Select your resume"}</strong>
-          <span>{file ? "File selected successfully" : "PDF format only"}</span>
-          <input
-            type="file"
-            accept=".pdf,application/pdf"
-            onChange={(e) => {
-              const selected = e.target.files?.[0];
-              if (!selected) return;
-
-              if (selected.type !== "application/pdf") {
-                alert("Please select a PDF file.");
-                e.target.value = "";
-                return;
-              }
-
-              setFile(selected);
-            }}
-          />
-        </label>
-
-        {file && (
-          <div className="file-details">
-            <CheckCircle size={18} />
-            <div><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></div>
-            <button onClick={() => setFile(null)}>Remove</button>
-          </div>
-        )}
-
-        <div className="info-note">
-          <AlertCircle size={18} />
-          <p>This version stores the selected file only in the current browser session. It does not extract resume text yet.</p>
-        </div>
-
-        <NavLink to="/job-details" className="primary-btn">
-          Continue <ArrowRight size={16} />
-        </NavLink>
-      </div>
-    </>
-  );
-}
-
-function JobDetails({ role, setRole, skills, setSkills, onAnalyze }) {
-  const navigate = useNavigate();
-
-  function handleAnalyze() {
-    if (!skills.trim()) {
-      alert("Please enter your skills.");
-      return;
-    }
-    onAnalyze();
-    navigate("/results");
+const defaultJobs = [
+  {
+    name: "Software Developer",
+    skills: ["Java", "Python", "C++", "JavaScript", "Data Structures", "OOP", "SQL", "Git"]
+  },
+  {
+    name: "Frontend Developer",
+    skills: ["HTML", "CSS", "JavaScript", "React", "Responsive Design", "Git"]
+  },
+  {
+    name: "Backend Developer",
+    skills: ["Java", "Python", "Node.js", "SQL", "MongoDB", "REST API", "Git"]
+  },
+  {
+    name: "Full Stack Developer",
+    skills: ["HTML", "CSS", "JavaScript", "React", "Node.js", "SQL", "MongoDB", "Git"]
+  },
+  {
+    name: "Data Analyst",
+    skills: ["Python", "SQL", "Excel", "Power BI", "Statistics", "Data Visualization"]
+  },
+  {
+    name: "AI/ML Engineer",
+    skills: ["Python", "Machine Learning", "Deep Learning", "TensorFlow", "Data Science", "SQL"]
   }
+];
 
-  return (
-    <>
-      <PageHeader
-        title="Job & Skills"
-        subtitle="Choose your preferred job and enter your current skills."
-      />
-
-      <div className="content-card narrow-card">
-        <div className="form-group">
-          <label>Preferred Job Role</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            {Object.keys(jobSkills).map(item => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-          <small>Select the role you want to prepare for.</small>
-        </div>
-
-        <div className="form-group">
-          <label>Your Current Skills</label>
-          <textarea
-            rows="5"
-            value={skills}
-            onChange={(e) => setSkills(e.target.value)}
-            placeholder="Example: Java, HTML, CSS, SQL, Git"
-          />
-          <small>Enter skills separated by commas.</small>
-        </div>
-
-        <div className="info-note">
-          <Lightbulb size={18} />
-          <p>Include only the skills you know or have practised. This helps make your comparison more useful.</p>
-        </div>
-
-        <button className="primary-btn full-btn" onClick={handleAnalyze}>
-          Analyze Skills <ArrowRight size={16} />
-        </button>
-      </div>
-    </>
-  );
-}
-
-function Results({ result }) {
-  if (!result) {
-    return (
-      <div className="empty-state">
-        <ChartNoAxesColumn size={40} />
-        <h2>No analysis available</h2>
-        <p>Enter your skills and complete an analysis first.</p>
-        <NavLink to="/job-details" className="primary-btn">Start Analysis</NavLink>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <PageHeader
-        title="Analysis Results"
-        subtitle={`Your skill comparison for the ${result.role} position.`}
-      />
-
-      <div className="result-overview">
-        <div className="content-card score-card">
-          <span>OVERALL SKILL MATCH</span>
-          <div className="big-score">{result.percentage}%</div>
-          <div className="score-track"><div style={{ width: `${result.percentage}%` }} /></div>
-          <p>{result.matched.length} out of {result.required.length} required skills matched.</p>
-        </div>
-
-        <div className="content-card result-summary">
-          <h3>Comparison Summary</h3>
-          <div><span>Matched skills</span><strong className="green-text">{result.matched.length}</strong></div>
-          <div><span>Missing skills</span><strong className="red-text">{result.missing.length}</strong></div>
-          <div><span>Selected role</span><strong>{result.role}</strong></div>
-        </div>
-      </div>
-
-      <div className="result-columns">
-        <div className="content-card">
-          <h3 className="result-heading"><CheckCircle /> Matching Skills</h3>
-          {result.matched.length ? result.matched.map(skill => (
-            <div className="skill-item" key={skill}><span>{skill}</span><span className="skill-status good">Matched</span></div>
-          )) : <p className="muted">No matching skills found yet.</p>}
-        </div>
-
-        <div className="content-card">
-          <h3 className="result-heading missing-heading"><AlertCircle /> Skills to Improve</h3>
-          {result.missing.length ? result.missing.map(skill => (
-            <div className="skill-item" key={skill}><span>{skill}</span><span className="skill-status needs">Missing</span></div>
-          )) : <p className="muted">All listed skills are matched.</p>}
-        </div>
-      </div>
-
-      <div className="page-actions">
-        <NavLink to="/suggestions" className="primary-btn">View Suggestions <ArrowRight size={16} /></NavLink>
-      </div>
-    </>
-  );
-}
-
-function Suggestions({ result }) {
-  return (
-    <>
-      <PageHeader
-        title="Improvement Suggestions"
-        subtitle="A few practical steps to strengthen your job profile."
-      />
-
-      {!result ? (
-        <div className="empty-state">
-          <Lightbulb size={40} />
-          <h2>Complete your analysis first</h2>
-          <p>Your suggestions will appear after you compare your skills.</p>
-          <NavLink to="/job-details" className="primary-btn">Start Analysis</NavLink>
-        </div>
-      ) : (
-        <div className="content-card narrow-card">
-          <div className="suggestion-intro">
-            <div className="stat-icon purple"><Lightbulb /></div>
-            <div>
-              <h3>Your next learning steps</h3>
-              <p>Suggestions based on your {result.role} skill comparison.</p>
-            </div>
-          </div>
-
-          {result.missing.length ? (
-            result.missing.map((skill, index) => (
-              <div className="suggestion-item" key={skill}>
-                <span className="suggestion-number">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <strong>Learn {skill}</strong>
-                  <p>Spend time understanding {skill} and practise it with a small project.</p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="info-note">
-              <CheckCircle size={19} />
-              <p>You have matched all the skills listed for this role. Continue practising and build projects to strengthen your experience.</p>
-            </div>
-          )}
-
-          <div className="info-note">
-            <Lightbulb size={18} />
-            <p>Try building one small project related to your selected job role and add it to your resume.</p>
-          </div>
-
-          <NavLink to="/job-details" className="secondary-btn">Update My Skills</NavLink>
-        </div>
-      )}
-    </>
-  );
-}
-
-function Workspace() {
+function App() {
+  const [page, setPage] = useState("home");
+  const [jobType, setJobType] = useState("default");
+  const [selectedJob, setSelectedJob] = useState("Software Developer");
+  const [customTitle, setCustomTitle] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
   const [file, setFile] = useState(null);
-  const [role, setRole] = useState("Java Developer");
-  const [skills, setSkills] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  function analyze() {
-    const enteredSkills = skills.split(",")
-      .map(skill => skill.trim().toLowerCase())
-      .filter(Boolean);
+  const handleFile = (e) => {
+    const selected = e.target.files[0];
+    setError("");
 
-    const required = jobSkills[role];
-    const matched = required.filter(skill =>
-      enteredSkills.includes(skill.toLowerCase())
-    );
-    const missing = required.filter(skill =>
-      !enteredSkills.includes(skill.toLowerCase())
-    );
+    if (!selected) return;
 
-    setResult({
-      role,
-      required,
-      matched,
-      missing,
-      percentage: Math.round((matched.length / required.length) * 100)
-    });
-  }
+    if (selected.type !== "application/pdf") {
+      setError("Please upload a PDF file.");
+      setFile(null);
+      return;
+    }
+
+    if (selected.size > 15 * 1024 * 1024) {
+      setError("Maximum PDF size is 15 MB.");
+      setFile(null);
+      return;
+    }
+
+    setFile(selected);
+  };
+
+  const analyzeResume = async () => {
+    if (!file) {
+      setError("Please upload a resume.");
+      return;
+    }
+
+    if (jobType === "custom" &&
+      (!customTitle.trim() || !customDescription.trim())) {
+      setError("Enter both the job title and job description.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const text = await extractPdfText(file);
+
+      let jobName;
+      let requiredSkills;
+
+      if (jobType === "default") {
+        const job = defaultJobs.find(
+          item => item.name === selectedJob
+        );
+
+        jobName = job.name;
+        requiredSkills = job.skills;
+      } else {
+        jobName = customTitle.trim();
+
+        // Extract skill keywords from the recruiter's description.
+        const skillDictionary = [
+          "Java", "Python", "C", "C++", "JavaScript",
+          "React", "Angular", "Vue", "Node.js", "HTML",
+          "CSS", "SQL", "MySQL", "MongoDB", "AWS",
+          "Azure", "Docker", "Kubernetes", "Git", "GitHub",
+          "Machine Learning", "Deep Learning", "TensorFlow",
+          "PyTorch", "Data Science", "Power BI", "Excel",
+          "Statistics", "Data Visualization", "REST API",
+          "Networking", "Linux", "Cybersecurity",
+          "Communication", "Problem Solving", "Data Structures",
+          "OOP", "Figma", "UI/UX", "Testing", "Agile",
+          "Spring Boot", "Django", "Flask", "PHP",
+          "TypeScript", "Next.js", "PostgreSQL", "Tableau",
+          "Leadership", "Project Management"
+        ];
+
+        const description = customDescription.toLowerCase();
+
+        requiredSkills = skillDictionary.filter(skill => {
+          const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          return new RegExp(`(^|[^a-z0-9+#])${escaped.toLowerCase()}($|[^a-z0-9+#])`, "i")
+            .test(description);
+        });
+
+        // Include the title as an additional source of skill keywords.
+        const title = customTitle.toLowerCase();
+
+        skillDictionary.forEach(skill => {
+          if (
+            title.includes(skill.toLowerCase()) &&
+            !requiredSkills.includes(skill)
+          ) {
+            requiredSkills.push(skill);
+          }
+        });
+
+        if (requiredSkills.length === 0) {
+          throw new Error(
+            "No supported skills were identified in the job description. Add technical skills such as Python, Java, SQL or React."
+          );
+        }
+      }
+
+      const normalize = value => value.toLowerCase();
+
+      const matchedSkills = requiredSkills.filter(skill => {
+        const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(`(^|[^a-z0-9+#])${escaped.toLowerCase()}($|[^a-z0-9+#])`, "i")
+          .test(text);
+      });
+
+      const missingSkills = requiredSkills.filter(
+        skill => !matchedSkills.includes(skill)
+      );
+
+      const percentage = Math.round(
+        matchedSkills.length / requiredSkills.length * 100
+      );
+
+      const suggestions = [];
+
+      if (missingSkills.length > 0) {
+        suggestions.push(
+          "Consider developing these skills: " +
+          missingSkills.join(", ") + "."
+        );
+      }
+
+      if (!/project/i.test(text)) {
+        suggestions.push(
+          "Include a Projects section with practical work."
+        );
+      }
+
+      if (!/education/i.test(text)) {
+        suggestions.push(
+          "Add a clearly structured Education section."
+        );
+      }
+
+      if (!/internship|experience/i.test(text)) {
+        suggestions.push(
+          "Include relevant internship or practical experience, if available."
+        );
+      }
+
+      if (!/github|linkedin|portfolio/i.test(text)) {
+        suggestions.push(
+          "Add your professional profile or portfolio links."
+        );
+      }
+
+      if (suggestions.length === 0) {
+        suggestions.push(
+          "Your resume covers the identified job requirements. Continue improving your practical experience and projects."
+        );
+      }
+
+      setResult({
+        jobName,
+        percentage,
+        matchedSkills,
+        missingSkills,
+        requiredSkills,
+        suggestions,
+        text
+      });
+
+      setPage("results");
+
+    } catch (err) {
+      setError(err.message || "Resume analysis failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="workspace">
-      <Sidebar fileName={file?.name} />
+    <div className="app">
 
-      <main className="main-area">
-        <div className="topbar">
-          <span>CareerLens / Workspace</span>
-          <span className="topbar-status">Student Project</span>
-        </div>
+      <nav className="navbar">
+        <h2 className="logo" onClick={() => setPage("home")}>
+          CareerLens<span>.</span>
+        </h2>
 
-        <div className="page-content">
-          <Routes>
-            <Route path="/dashboard" element={<Dashboard file={file} result={result} />} />
-            <Route path="/upload" element={<UploadPage file={file} setFile={setFile} />} />
-            <Route path="/job-details" element={
-              <JobDetails role={role} setRole={setRole} skills={skills} setSkills={setSkills} onAnalyze={analyze} />
-            } />
-            <Route path="/results" element={<Results result={result} />} />
-            <Route path="/suggestions" element={<Suggestions result={result} />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+        <div className="navlinks">
+          <button onClick={() => setPage("home")}>Home</button>
+          <button onClick={() => setPage("analyze")}>Screen Resume</button>
+          <button onClick={() => setPage("about")}>About</button>
         </div>
-      </main>
+      </nav>
+
+      {page === "home" && (
+        <section className="hero">
+          <div className="hero-content">
+            <p className="tag">RESUME SCREENING SYSTEM</p>
+
+            <h1>
+              Find the right match
+              <br />
+              <span>for every opportunity.</span>
+            </h1>
+
+            <p className="description">
+              Upload a resume, choose a job role or enter
+              your own job requirements. Evaluate skills
+              and discover areas for improvement.
+            </p>
+
+            <button
+              className="primary-btn"
+              onClick={() => setPage("analyze")}
+            >
+              Start Screening →
+            </button>
+          </div>
+
+          <div className="hero-card">
+            <h3>CareerLens Features</h3>
+            <div className="feature-row">✓ PDF Resume Reading</div>
+            <div className="feature-row">✓ Six Default Job Roles</div>
+            <div className="feature-row">✓ Custom Job Requirements</div>
+            <div className="feature-row">✓ Skills Matching</div>
+            <div className="feature-row">✓ Match Percentage</div>
+            <div className="feature-row">✓ Improvement Suggestions</div>
+          </div>
+        </section>
+      )}
+
+      {page === "analyze" && (
+        <section className="content-page">
+          <p className="tag">RECRUITER WORKSPACE</p>
+          <h1>Resume Screening</h1>
+          <p className="description">
+            Select a job role or enter your own requirements
+            to evaluate the candidate's resume.
+          </p>
+
+          <div className="section-card">
+            <h3>1. Select Job Type</h3>
+
+            <div className="choice-row">
+              <button
+                className={jobType === "default" ? "choice active" : "choice"}
+                onClick={() => {
+                  setJobType("default");
+                  setError("");
+                }}
+              >
+                Default Jobs
+              </button>
+
+              <button
+                className={jobType === "custom" ? "choice active" : "choice"}
+                onClick={() => {
+                  setJobType("custom");
+                  setError("");
+                }}
+              >
+                Custom Job
+              </button>
+            </div>
+
+            {jobType === "default" ? (
+              <>
+                <label>Select Job Role</label>
+
+                <div className="job-grid">
+                  {defaultJobs.map(job => (
+                    <button
+                      key={job.name}
+                      className={
+                        selectedJob === job.name
+                          ? "job-card selected"
+                          : "job-card"
+                      }
+                      onClick={() => setSelectedJob(job.name)}
+                    >
+                      <strong>{job.name}</strong>
+                      <span>{job.skills.length} required skills</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="custom-form">
+                <label>Job Title</label>
+                <input
+                  value={customTitle}
+                  onChange={e => setCustomTitle(e.target.value)}
+                  placeholder="Example: Cybersecurity Analyst"
+                />
+
+                <label>Job Description</label>
+                <textarea
+                  value={customDescription}
+                  onChange={e => setCustomDescription(e.target.value)}
+                  placeholder="Enter job responsibilities and required skills..."
+                  rows={6}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="section-card">
+            <h3>2. Upload Candidate Resume</h3>
+
+            <div className="upload-box">
+              <div className="upload-icon">↑</div>
+              <h3>Upload PDF Resume</h3>
+              <p>Normal and scanned PDFs supported · Maximum 15 MB</p>
+
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handleFile}
+              />
+
+              {file && (
+                <p className="file-name">
+                  ✓ {file.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {error && <p className="error">{error}</p>}
+
+          <button
+            className="primary-btn"
+            onClick={analyzeResume}
+            disabled={loading}
+          >
+            {loading ? "Analyzing Resume..." : "Analyze Candidate →"}
+          </button>
+
+          {loading && (
+            <p className="loading-text">
+              Extracting resume information and checking skills.
+              Please wait...
+            </p>
+          )}
+        </section>
+      )}
+
+      {page === "results" && result && (
+        <section className="content-page">
+          <p className="tag">SCREENING REPORT</p>
+          <h1>Candidate Analysis</h1>
+          <p className="description">
+            Job Position: <strong>{result.jobName}</strong>
+          </p>
+
+          <div className="score-card">
+            <p>Resume Match Percentage</p>
+            <div className="score">{result.percentage}%</div>
+            <p>
+              {result.matchedSkills.length} of{" "}
+              {result.requiredSkills.length} required skills matched
+            </p>
+          </div>
+
+          <div className="section-card">
+            <h3>Matching Skills</h3>
+            <div className="skill-list">
+              {result.matchedSkills.length ? (
+                result.matchedSkills.map(skill => (
+                  <span className="skill found" key={skill}>
+                    ✓ {skill}
+                  </span>
+                ))
+              ) : (
+                <p>No matching skills detected.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="section-card">
+            <h3>Missing Skills</h3>
+            <div className="skill-list">
+              {result.missingSkills.length ? (
+                result.missingSkills.map(skill => (
+                  <span className="skill missing" key={skill}>
+                    + {skill}
+                  </span>
+                ))
+              ) : (
+                <p>All identified skills were found.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="section-card">
+            <h3>Suggestions for Improvement</h3>
+            {result.suggestions.map((suggestion, index) => (
+              <p className="suggestion" key={index}>
+                {index + 1}. {suggestion}
+              </p>
+            ))}
+          </div>
+
+          <div className="section-card">
+            <h3>Extracted Resume Content</h3>
+            <div className="extracted-text">{result.text}</div>
+          </div>
+
+          <button
+            className="primary-btn"
+            onClick={() => {
+              setResult(null);
+              setFile(null);
+              setPage("analyze");
+            }}
+          >
+            Screen Another Candidate
+          </button>
+        </section>
+      )}
+
+      {page === "about" && (
+        <section className="content-page">
+          <p className="tag">ABOUT CAREERLENS</p>
+          <h1>About the Project</h1>
+          <p className="description">
+            CareerLens is a resume screening system that
+            compares candidate resumes with job requirements.
+            It helps recruiters identify matching skills,
+            missing skills and areas for improvement.
+          </p>
+
+          <div className="section-card">
+            <h3>Technology and Features</h3>
+            <p>• React.js interface</p>
+            <p>• PDF.js for PDF text extraction</p>
+            <p>• Tesseract.js for OCR</p>
+            <p>• Resume skill matching</p>
+            <p>• Custom job requirement analysis</p>
+          </div>
+        </section>
+      )}
+
+      <footer>
+        <h3>CareerLens.</h3>
+        <p>Resume Screening and Analysis System</p>
+        <p>© 2026 CareerLens</p>
+      </footer>
+
     </div>
   );
 }
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Workspace />
-    </BrowserRouter>
-  );
-}
+export default App;
